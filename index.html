@@ -269,16 +269,7 @@
 
 <!-- オプション -->
 <div class="card">
-  <!-- オプション1行目：区切り方・ハイライト -->
-  <div style="display:flex; gap:12px; flex-wrap:wrap;">
-    <div class="option-block">
-      <div class="section-label">区切り方</div>
-      <div class="seg" id="segSplit">
-        <button class="active" data-val="punct">句読点</button>
-        <button data-val="bunsetsu">文節</button>
-        <button data-val="full">全文</button>
-      </div>
-    </div>
+  <div style="display:grid; grid-template-columns: auto repeat(3, 1fr); gap:12px; align-items:end;">
     <div class="option-block">
       <div class="section-label">ハイライト</div>
       <div class="seg" id="segHighlight">
@@ -286,10 +277,6 @@
         <button data-val="off">なし</button>
       </div>
     </div>
-  </div>
-
-  <!-- オプション2行目：速度・音程・音量 -->
-  <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:4px;">
     <div class="option-block">
       <div class="section-label">速度</div>
       <div class="slider-row">
@@ -353,7 +340,6 @@ let currentIdx = 0;
 let isPlaying = false;
 let isPaused = false;
 let currentUtterance = null;
-let splitMode = 'punct';
 let highlightMode = 'on';
 let engineMode = 'browser';
 let voices = [];
@@ -387,6 +373,19 @@ function filterVoices() {
         `<option value="${i}">${v.name} (${v.lang})${v.localService?'　💻':'　🌐'}</option>`
       ).join('')
     : '<option value="">（この声の種類は利用できません）</option>';
+
+  // Google日本語 → iOS日本語（ja-JP）→ 日本語全般 の順で優先選択
+  const priority = [
+    i => voices[i].name.toLowerCase().includes('google') && voices[i].lang.startsWith('ja'),
+    i => voices[i].lang === 'ja-JP',
+    i => voices[i].lang.startsWith('ja'),
+  ];
+  let defaultIdx = 0;
+  for (const test of priority) {
+    const found = voices.findIndex((_, i) => test(i));
+    if (found !== -1) { defaultIdx = found; break; }
+  }
+  sel.value = defaultIdx;
 }
 
 // ---- セグメントコントロール共通 ----
@@ -401,7 +400,6 @@ function initSeg(id, onChange) {
   });
 }
 
-initSeg('segSplit', val => { splitMode = val; });
 initSeg('segHighlight', val => {
   highlightMode = val;
   // オフにしたらハイライトエリアを非表示
@@ -524,7 +522,7 @@ function startPlay() {
   const text = document.getElementById('inputText').value;
   if (!text.trim()) { setStatus('テキストを入力してください'); return; }
   speechSynthesis.cancel();
-  chunks = splitText(text, splitMode);
+  chunks = splitText(text, 'punct');
   isPlaying = true;
   isPaused = false;
   speakChunk(0);
