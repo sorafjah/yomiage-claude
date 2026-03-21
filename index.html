@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>よみあげ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@400;700&display=swap');
+
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8eef5;
+    --accent: #4a7cc7;
+    --accent2: #2d5fa3;
+    --play: #4a7cc7;
+    --pause: #4a7cc7;
+    --stop: #4a7cc7;
+    --text: #1a2a3a;
+    --text2: #4a5a6a;
+    --text3: #8a9aaa;
+    --shadow: 0 4px 20px rgba(74,124,199,0.15);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent2);
+    text-align: center;
+    letter-spacing: 0.05em;
+    padding: 8px 0 4px;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .section-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* テキストエリア */
+  #inputText {
+    width: 100%;
+    min-height: 130px;
+    border: 2px solid var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    font-family: 'M PLUS Rounded 1c', sans-serif;
+    font-size: 1rem;
+    color: var(--text);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.7;
+  }
+  #inputText:focus { border-color: var(--accent); }
+  #inputText::placeholder { color: var(--text3); }
+
+  /* オプション行 */
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (min-width: 600px) {
+    .options-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  .option-block label.section-label { margin-bottom: 6px; display: block; }
+
+  /* セグメントコントロール */
+  .seg {
+    display: flex;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .seg button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    padding: 6px 4px;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text2);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  .seg button.active {
+    background: var(--surface);
+    color: var(--accent2);
+    box-shadow: 0 1px 6px rgba(74,124,199,0.18);
+  }
+
+  /* スライダー */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .slider-row input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 6px;
+  }
+  .slider-val {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent2);
+    min-width: 38px;
+    text-align: right;
+  }
+
+  /* 声の選択 */
+  #voiceSelect {
+    width: 100%;
+    padding: 8px 10px;
+    border: 2px solid var(--surface2);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    color: var(--text);
+    background: var(--surface);
+    outline: none;
+    cursor: pointer;
+  }
+  #voiceSelect:focus { border-color: var(--accent); }
+
+  /* ハイライト表示エリア */
+  #highlightArea {
+    min-height: 80px;
+    line-height: 1.9;
+    font-size: 1.05rem;
+    color: var(--text2);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    padding: 12px;
+    word-break: break-all;
+  }
+  #highlightArea .chunk {
+    display: inline;
+    padding: 2px 0;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
+  }
+  #highlightArea .chunk.active {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 5px;
+    padding: 2px 4px;
+  }
+  #highlightArea .chunk.done {
+    color: var(--text3);
+  }
+
+  /* 再生コントロール */
+  .playbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .btn-play {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: transform 0.12s, box-shadow 0.12s;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.13);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-play:active { transform: scale(0.93); }
+
+  #btnPlay  { background: var(--play); color: #fff; }
+  #btnPause { background: var(--pause); color: #fff; }
+  #btnStop  { background: var(--stop); color: #fff; }
+
+  .btn-play:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  /* プログレスバー */
+  .progress-wrap {
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  #progressBar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #7ab4ff);
+    width: 0%;
+    border-radius: 99px;
+    transition: width 0.2s;
+  }
+
+  /* ステータス */
+  #status {
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text3);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    min-height: 20px;
+  }
+
+  /* AI TTS 注記 */
+  .ai-note {
+    display: none;
+    font-size: 0.75rem;
+    color: #e07a00;
+    background: #fff8ee;
+    border: 1px solid #f0c97a;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-top: 8px;
+  }
+
+  /* レスポンシブ調整 */
+  @media (max-width: 500px) {
+    body { padding: 10px; gap: 10px; }
+    h1 { font-size: 1.2rem; }
+    .options-grid { grid-template-columns: 1fr 1fr; }
+    .btn-play { width: 60px; height: 60px; font-size: 1.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>🔊 よみあげ</h1>
+
+<!-- テキスト入力 -->
+<div class="card">
+  <div class="section-label">テキスト</div>
+  <textarea id="inputText" placeholder="ここに読み上げたいテキストを入力してください。"></textarea>
+</div>
+
+<!-- オプション -->
+<div class="card">
+  <div class="options-grid">
+    <!-- 区切り方 -->
+    <div class="option-block">
+      <div class="section-label">区切り方</div>
+      <div class="seg" id="segSplit">
+        <button class="active" data-val="punct">句読点</button>
+        <button data-val="bunsetsu">文節</button>
+        <button data-val="full">全文</button>
+      </div>
+    </div>
+
+    <!-- 速度 -->
+    <div class="option-block">
+      <div class="section-label">速度</div>
+      <div class="slider-row">
+        <input type="range" id="rateSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+        <div class="slider-val" id="rateVal">×1.0</div>
+      </div>
+    </div>
+
+    <!-- 音程 -->
+    <div class="option-block">
+      <div class="section-label">音程</div>
+      <div class="slider-row">
+        <input type="range" id="pitchSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+        <div class="slider-val" id="pitchVal">×1.0</div>
+      </div>
+    </div>
+
+    <!-- 音量 -->
+    <div class="option-block">
+      <div class="section-label">音量</div>
+      <div class="slider-row">
+        <input type="range" id="volSlider" min="0" max="2.0" step="0.05" value="1.0">
+        <div class="slider-val" id="volVal">100%</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 声の選択 -->
+<div class="card">
+  <div class="section-label">声の種類</div>
+  <div class="seg" id="segEngine">
+    <button class="active" data-val="browser">ブラウザの声</button>
+    <button data-val="pc">PC（OS）の声</button>
+  </div>
+  <br>
+  <div class="section-label">声</div>
+  <select id="voiceSelect"><option value="">（声を読みこみ中…）</option></select>
+  <div class="ai-note" id="aiNote">
+    ⚠️ AI音声は現在このブラウザでは対応していません。ブラウザ内蔵の声を使います。
+  </div>
+</div>
+
+<!-- ハイライト -->
+<div class="card">
+  <div class="section-label">読み上げ中のテキスト</div>
+  <div id="highlightArea">テキストを入力して▶を押してください。</div>
+  <div class="progress-wrap"><div id="progressBar"></div></div>
+</div>
+
+<!-- 再生コントロール -->
+<div class="card">
+  <div class="playbar">
+    <button class="btn-play" id="btnStop" title="停止">⏹</button>
+    <button class="btn-play" id="btnPlay" title="再生">▶</button>
+    <button class="btn-play" id="btnPause" title="一時停止" disabled>⏸</button>
+  </div>
+  <div id="status" style="margin-top:12px;">待機中</div>
+</div>
+
+<script>
+// ---- 状態 ----
+let chunks = [];
+let currentIdx = 0;
+let isPlaying = false;
+let isPaused = false;
+let currentUtterance = null;
+let splitMode = 'punct';
+let engineMode = 'browser';
+let voices = [];
+let allVoices = [];
+let pausedIdx = 0;
+
+// ---- 音声取得 ----
+function loadVoices() {
+  allVoices = speechSynthesis.getVoices();
+  filterVoices();
+}
+speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+
+function filterVoices() {
+  const sel = document.getElementById('voiceSelect');
+  // ブラウザモード: オンライン含むすべて / PCモード: ローカルのみ
+  if (engineMode === 'pc') {
+    voices = allVoices.filter(v => v.localService);
+  } else {
+    voices = allVoices;
+  }
+  // 日本語優先ソート
+  voices.sort((a,b) => {
+    const aj = a.lang.startsWith('ja') ? 0 : 1;
+    const bj = b.lang.startsWith('ja') ? 0 : 1;
+    return aj - bj;
+  });
+  sel.innerHTML = voices.length
+    ? voices.map((v,i) =>
+        `<option value="${i}">${v.name} (${v.lang})${v.localService?'　💻':'　🌐'}</option>`
+      ).join('')
+    : '<option value="">（この声の種類は利用できません）</option>';
+}
+
+// ---- セグメントコントロール共通 ----
+function initSeg(id, onChange) {
+  const wrap = document.getElementById(id);
+  wrap.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      wrap.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      onChange(btn.dataset.val);
+    });
+  });
+}
+
+initSeg('segSplit', val => { splitMode = val; });
+initSeg('segEngine', val => {
+  engineMode = val;
+  filterVoices();
+});
+
+// ---- スライダー ----
+const rateSlider = document.getElementById('rateSlider');
+const rateVal = document.getElementById('rateVal');
+rateSlider.addEventListener('input', () => {
+  rateVal.textContent = '×' + parseFloat(rateSlider.value).toFixed(1);
+});
+
+const pitchSlider = document.getElementById('pitchSlider');
+const pitchVal = document.getElementById('pitchVal');
+pitchSlider.addEventListener('input', () => {
+  pitchVal.textContent = '×' + parseFloat(pitchSlider.value).toFixed(1);
+});
+
+const volSlider = document.getElementById('volSlider');
+const volVal = document.getElementById('volVal');
+volSlider.addEventListener('input', () => {
+  volVal.textContent = Math.round(volSlider.value * 100) + '%';
+});
+
+// ---- テキスト分割 ----
+function splitText(text, mode) {
+  if (!text.trim()) return [];
+  if (mode === 'full') return [text.trim()];
+  if (mode === 'punct') {
+    // 句読点・感嘆符・疑問符で区切る（区切り文字を末尾に含める）
+    const parts = text.split(/(?<=[。、！？…\.\!\?]+)/g)
+      .map(s => s.trim()).filter(s => s.length > 0);
+    return parts.length ? parts : [text.trim()];
+  }
+  if (mode === 'bunsetsu') {
+    // 文節らしい区切り：助詞・助動詞の後で区切る（簡易）
+    const parts = text.split(/(?<=[はがをにでもとへのやよりからまで、。！？\.\!\?]+)/g)
+      .map(s => s.trim()).filter(s => s.length > 0);
+    return parts.length ? parts : [text.trim()];
+  }
+  return [text.trim()];
+}
+
+// ---- ハイライト構築 ----
+function buildHighlight(chunks, activeIdx) {
+  const area = document.getElementById('highlightArea');
+  area.innerHTML = chunks.map((c, i) => {
+    let cls = 'chunk';
+    if (i === activeIdx) cls += ' active';
+    else if (i < activeIdx) cls += ' done';
+    return `<span class="${cls}" data-i="${i}">${c} </span>`;
+  }).join('');
+  // アクティブにスクロール
+  const el = area.querySelector('.active');
+  if (el) el.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+
+// ---- プログレスバー ----
+function updateProgress(idx, total) {
+  const pct = total > 1 ? (idx / (total - 1)) * 100 : 100;
+  document.getElementById('progressBar').style.width = Math.min(pct, 100) + '%';
+}
+
+// ---- ステータス ----
+function setStatus(txt) {
+  document.getElementById('status').textContent = txt;
+}
+
+// ---- 読み上げ ----
+function speakChunk(idx) {
+  if (idx >= chunks.length) {
+    // 完了
+    isPlaying = false;
+    isPaused = false;
+    currentIdx = 0;
+    buildHighlight(chunks, -1);
+    updateProgress(chunks.length, chunks.length);
+    setStatus('読み上げ完了 ✅');
+    updateButtons();
+    return;
+  }
+  currentIdx = idx;
+  buildHighlight(chunks, idx);
+  updateProgress(idx, chunks.length);
+  setStatus(`読み上げ中… (${idx+1} / ${chunks.length})`);
+
+  const utt = new SpeechSynthesisUtterance(chunks[idx]);
+  utt.rate = parseFloat(rateSlider.value);
+  utt.pitch = parseFloat(pitchSlider.value);
+  utt.volume = Math.min(parseFloat(volSlider.value), 1.0); // Web Speech API は 0〜1
+
+  const sel = document.getElementById('voiceSelect');
+  const vi = parseInt(sel.value);
+  if (!isNaN(vi) && voices[vi]) utt.voice = voices[vi];
+
+  utt.onend = () => {
+    if (isPlaying && !isPaused) {
+      speakChunk(idx + 1);
+    }
+  };
+  utt.onerror = (e) => {
+    // cancel/interrupted は一時停止・停止操作によるもの、無視する
+    if (e.error === 'interrupted' || e.error === 'canceled') return;
+    setStatus('エラー: ' + e.error);
+    isPlaying = false;
+    updateButtons();
+  };
+
+  currentUtterance = utt;
+  speechSynthesis.speak(utt);
+}
+
+function startPlay() {
+  const text = document.getElementById('inputText').value;
+  if (!text.trim()) { setStatus('テキストを入力してください'); return; }
+  speechSynthesis.cancel();
+  chunks = splitText(text, splitMode);
+  isPlaying = true;
+  isPaused = false;
+  speakChunk(0);
+  updateButtons();
+}
+
+function pausePlay() {
+  if (!isPlaying) return;
+  if (isPaused) {
+    // 再開：記憶しておいたチャンクから再発話
+    isPaused = false;
+    setStatus(`読み上げ再開… (${currentIdx+1} / ${chunks.length})`);
+    updateButtons();
+    speakChunk(currentIdx);
+  } else {
+    // 一時停止：現在のチャンクを記憶してcancel
+    isPaused = true;
+    pausedIdx = currentIdx;
+    speechSynthesis.cancel();
+    setStatus('一時停止中 ⏸');
+    updateButtons();
+  }
+}
+
+function stopPlay() {
+  isPlaying = false;
+  isPaused = false;
+  speechSynthesis.cancel();
+  currentIdx = 0;
+  buildHighlight(chunks, -1);
+  document.getElementById('progressBar').style.width = '0%';
+  setStatus('停止しました');
+  updateButtons();
+}
+
+function updateButtons() {
+  document.getElementById('btnPlay').disabled = isPlaying && !isPaused;
+  document.getElementById('btnPause').disabled = !isPlaying;
+  if (isPaused) {
+    document.getElementById('btnPause').textContent = '▶▶';
+    document.getElementById('btnPause').title = '再開';
+  } else {
+    document.getElementById('btnPause').textContent = '⏸';
+    document.getElementById('btnPause').title = '一時停止';
+  }
+}
+
+document.getElementById('btnPlay').addEventListener('click', startPlay);
+document.getElementById('btnPause').addEventListener('click', pausePlay);
+document.getElementById('btnStop').addEventListener('click', stopPlay);
+
+// ページ離脱時に停止
+window.addEventListener('beforeunload', () => speechSynthesis.cancel());
+
+// 初期化
+updateButtons();
+setStatus('待機中');
+</script>
+</body>
+</html>
