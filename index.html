@@ -280,6 +280,15 @@
       </div>
     </div>
 
+    <!-- ハイライト -->
+    <div class="option-block">
+      <div class="section-label">ハイライト</div>
+      <div class="seg" id="segHighlight">
+        <button class="active" data-val="on">あり</button>
+        <button data-val="off">なし</button>
+      </div>
+    </div>
+
     <!-- 速度 -->
     <div class="option-block">
       <div class="section-label">速度</div>
@@ -349,6 +358,7 @@ let isPlaying = false;
 let isPaused = false;
 let currentUtterance = null;
 let splitMode = 'punct';
+let highlightMode = 'on';
 let engineMode = 'browser';
 let voices = [];
 let allVoices = [];
@@ -396,6 +406,11 @@ function initSeg(id, onChange) {
 }
 
 initSeg('segSplit', val => { splitMode = val; });
+initSeg('segHighlight', val => {
+  highlightMode = val;
+  // オフにしたらハイライトエリアを非表示
+  document.querySelector('.card:has(#highlightArea)').style.display = val === 'off' ? 'none' : '';
+});
 initSeg('segEngine', val => {
   engineMode = val;
   filterVoices();
@@ -441,6 +456,7 @@ function splitText(text, mode) {
 
 // ---- ハイライト構築 ----
 function buildHighlight(chunks, activeIdx) {
+  if (highlightMode === 'off') return;
   const area = document.getElementById('highlightArea');
   area.innerHTML = chunks.map((c, i) => {
     let cls = 'chunk';
