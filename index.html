@@ -259,7 +259,7 @@
 </head>
 <body>
 
-<h1>🔊 よみあげ</h1>
+<h1>よみあげ</h1>
 
 <!-- テキスト入力 -->
 <div class="card">
@@ -269,8 +269,8 @@
 
 <!-- オプション -->
 <div class="card">
-  <div class="options-grid">
-    <!-- 区切り方 -->
+  <!-- オプション1行目：区切り方・ハイライト -->
+  <div style="display:flex; gap:12px; flex-wrap:wrap;">
     <div class="option-block">
       <div class="section-label">区切り方</div>
       <div class="seg" id="segSplit">
@@ -279,8 +279,6 @@
         <button data-val="full">全文</button>
       </div>
     </div>
-
-    <!-- ハイライト -->
     <div class="option-block">
       <div class="section-label">ハイライト</div>
       <div class="seg" id="segHighlight">
@@ -288,8 +286,10 @@
         <button data-val="off">なし</button>
       </div>
     </div>
+  </div>
 
-    <!-- 速度 -->
+  <!-- オプション2行目：速度・音程・音量 -->
+  <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:4px;">
     <div class="option-block">
       <div class="section-label">速度</div>
       <div class="slider-row">
@@ -297,8 +297,6 @@
         <div class="slider-val" id="rateVal">×1.0</div>
       </div>
     </div>
-
-    <!-- 音程 -->
     <div class="option-block">
       <div class="section-label">音程</div>
       <div class="slider-row">
@@ -306,8 +304,6 @@
         <div class="slider-val" id="pitchVal">×1.0</div>
       </div>
     </div>
-
-    <!-- 音量 -->
     <div class="option-block">
       <div class="section-label">音量</div>
       <div class="slider-row">
