@@ -273,8 +273,8 @@
     <div class="option-block">
       <div class="section-label">ハイライト</div>
       <div class="seg" id="segHighlight">
-        <button class="active" data-val="on">あり</button>
-        <button data-val="off">なし</button>
+        <button data-val="on">あり</button>
+        <button class="active" data-val="off">なし</button>
       </div>
     </div>
     <div class="option-block">
@@ -303,21 +303,12 @@
 
 <!-- 声の選択 -->
 <div class="card">
-  <div class="section-label">声の種類</div>
-  <div class="seg" id="segEngine">
-    <button class="active" data-val="browser">ブラウザの声</button>
-    <button data-val="pc">PC（OS）の声</button>
-  </div>
-  <br>
   <div class="section-label">声</div>
   <select id="voiceSelect"><option value="">（声を読みこみ中…）</option></select>
-  <div class="ai-note" id="aiNote">
-    ⚠️ AI音声は現在このブラウザでは対応していません。ブラウザ内蔵の声を使います。
-  </div>
 </div>
 
 <!-- ハイライト -->
-<div class="card">
+<div class="card" id="highlightCard" style="display:none;">
   <div class="section-label">読み上げ中のテキスト</div>
   <div id="highlightArea">テキストを入力して▶を押してください。</div>
   <div class="progress-wrap"><div id="progressBar"></div></div>
@@ -340,8 +331,8 @@ let currentIdx = 0;
 let isPlaying = false;
 let isPaused = false;
 let currentUtterance = null;
-let highlightMode = 'on';
-let engineMode = 'browser';
+let highlightMode = 'off';
+let engineMode = 'browser'; // 互換用（未使用）
 let voices = [];
 let allVoices = [];
 let pausedIdx = 0;
@@ -356,13 +347,7 @@ loadVoices();
 
 function filterVoices() {
   const sel = document.getElementById('voiceSelect');
-  // ブラウザモード: オンライン含むすべて / PCモード: ローカルのみ
-  if (engineMode === 'pc') {
-    voices = allVoices.filter(v => v.localService);
-  } else {
-    voices = allVoices;
-  }
-  // 日本語優先ソート
+  voices = allVoices;
   voices.sort((a,b) => {
     const aj = a.lang.startsWith('ja') ? 0 : 1;
     const bj = b.lang.startsWith('ja') ? 0 : 1;
@@ -372,9 +357,8 @@ function filterVoices() {
     ? voices.map((v,i) =>
         `<option value="${i}">${v.name} (${v.lang})${v.localService?'　💻':'　🌐'}</option>`
       ).join('')
-    : '<option value="">（この声の種類は利用できません）</option>';
+    : '<option value="">（声が見つかりません）</option>';
 
-  // Google日本語 → iOS日本語（ja-JP）→ 日本語全般 の順で優先選択
   const priority = [
     i => voices[i].name.toLowerCase().includes('google') && voices[i].lang.startsWith('ja'),
     i => voices[i].lang === 'ja-JP',
@@ -402,13 +386,9 @@ function initSeg(id, onChange) {
 
 initSeg('segHighlight', val => {
   highlightMode = val;
-  // オフにしたらハイライトエリアを非表示
-  document.querySelector('.card:has(#highlightArea)').style.display = val === 'off' ? 'none' : '';
+  document.getElementById('highlightCard').style.display = val === 'off' ? 'none' : '';
 });
-initSeg('segEngine', val => {
-  engineMode = val;
-  filterVoices();
-});
+// engineMode切替なし（削除済み）
 
 // ---- スライダー ----
 const rateSlider = document.getElementById('rateSlider');
