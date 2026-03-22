@@ -263,8 +263,22 @@
 
 <!-- テキスト入力 -->
 <div class="card">
-  <div class="section-label">テキスト</div>
-  <textarea id="inputText" placeholder="ここに読み上げたいテキストを入力してください。"></textarea>
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+    <div class="section-label" style="margin-bottom:0;">テキスト</div>
+    <button id="btnInsertPause" title="カーソル位置に一時停止マークを挿入" style="
+      background: var(--surface2);
+      border: 2px solid var(--accent);
+      color: var(--accent2);
+      border-radius: 8px;
+      padding: 5px 12px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+    ">一時停止を入れる ///</button>
+  </div>
+  <textarea id="inputText" placeholder="ここに読み上げたいテキストを入力してください。&#10;一時停止したい場所にカーソルを置いて「一時停止を入れる ///」を押すと /// が入ります。"></textarea>
 </div>
 
 <!-- オプション -->
@@ -409,23 +423,22 @@ volSlider.addEventListener('input', () => {
   volVal.textContent = Math.round(volSlider.value * 100) + '%';
 });
 
+const PAUSE_MARK = '///';
+
 // ---- テキスト分割 ----
 function splitText(text, mode) {
   if (!text.trim()) return [];
-  if (mode === 'full') return [text.trim()];
-  if (mode === 'punct') {
-    // 句読点・感嘆符・疑問符で区切る（区切り文字を末尾に含める）
-    const parts = text.split(/(?<=[。、！？…\.\!\?]+)/g)
+  // まず /// で大きく分割（ポーズマーカーをチャンクとして保持）
+  const segments = text.split('///').reduce((acc, seg, i, arr) => {
+    // 句読点でさらに分割
+    const parts = seg.split(/(?<=[。、！？…\.\!\?]+)/g)
       .map(s => s.trim()).filter(s => s.length > 0);
-    return parts.length ? parts : [text.trim()];
-  }
-  if (mode === 'bunsetsu') {
-    // 文節らしい区切り：助詞・助動詞の後で区切る（簡易）
-    const parts = text.split(/(?<=[はがをにでもとへのやよりからまで、。！？\.\!\?]+)/g)
-      .map(s => s.trim()).filter(s => s.length > 0);
-    return parts.length ? parts : [text.trim()];
-  }
-  return [text.trim()];
+    acc.push(...parts);
+    // 最後のsegment以外の後にポーズマーカーを挿入
+    if (i < arr.length - 1) acc.push(PAUSE_MARK);
+    return acc;
+  }, []);
+  return segments.length ? segments : [text.trim()];
 }
 
 // ---- ハイライト構築 ----
@@ -467,6 +480,16 @@ function speakChunk(idx) {
     updateButtons();
     return;
   }
+
+  // /// に来たら一時停止
+  if (chunks[idx] === PAUSE_MARK) {
+    isPaused = true;
+    currentIdx = idx + 1; // 再開時は次のチャンクから
+    setStatus('一時停止中 （▷で再開）');
+    updateButtons();
+    return;
+  }
+
   currentIdx = idx;
   buildHighlight(chunks, idx);
   updateProgress(idx, chunks.length);
@@ -522,7 +545,7 @@ function pausePlay() {
     isPaused = true;
     pausedIdx = currentIdx;
     speechSynthesis.cancel();
-    setStatus('一時停止中 ⏸');
+    setStatus('一時停止中 （▷で再開）');
     updateButtons();
   }
 }
@@ -542,7 +565,7 @@ function updateButtons() {
   document.getElementById('btnPlay').disabled = isPlaying && !isPaused;
   document.getElementById('btnPause').disabled = !isPlaying;
   if (isPaused) {
-    document.getElementById('btnPause').textContent = '▶▶';
+    document.getElementById('btnPause').textContent = '▷';
     document.getElementById('btnPause').title = '再開';
   } else {
     document.getElementById('btnPause').textContent = '⏸';
@@ -553,6 +576,19 @@ function updateButtons() {
 document.getElementById('btnPlay').addEventListener('click', startPlay);
 document.getElementById('btnPause').addEventListener('click', pausePlay);
 document.getElementById('btnStop').addEventListener('click', stopPlay);
+
+// /// 挿入ボタン
+document.getElementById('btnInsertPause').addEventListener('click', () => {
+  const ta = document.getElementById('inputText');
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  const val = ta.value;
+  const insert = ' /// ';
+  ta.value = val.slice(0, start) + insert + val.slice(end);
+  // カーソルを挿入後に移動
+  ta.selectionStart = ta.selectionEnd = start + insert.length;
+  ta.focus();
+});
 
 // ページ離脱時に停止
 window.addEventListener('beforeunload', () => speechSynthesis.cancel());
